@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import Spinner from "./components/Spinner";
 import UserTable from "./components/UserTable";
 import type { ApiResponse, User } from "./lib/types";
@@ -72,9 +72,9 @@ const App: React.FC = () => {
       .map((entry) => entry.user);
   }, [deferredQuery, searchIndex, users]);
 
-  const handleDelete = (user: User) => {
+  const handleDelete = useCallback((user: User) => {
     setUsers((prev) => prev.filter((item) => item !== user));
-  };
+  }, []);
 
   return (
     <div className="app min-h-screen">

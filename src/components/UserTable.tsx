@@ -27,50 +27,58 @@ const TableBody = React.forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivElemen
 
 TableBody.displayName = "TableBody";
 
-const UserRow: React.FC<ListChildComponentProps<RowData>> = ({
-  index,
-  style,
-  data,
-}) => {
-  const user = data.users[index];
+const UserRow = React.memo<ListChildComponentProps<RowData>>(
+  ({ index, style, data }) => {
+    const user = data.users[index];
 
-  if (!user) {
-    return null;
+    if (!user) {
+      return null;
+    }
+
+    return (
+      <div
+        role="row"
+        className="user-table__row"
+        style={style}
+        aria-rowindex={index + 2}
+      >
+        <div role="cell" className="user-table__cell">
+          {user.name}
+        </div>
+        <div role="cell" className="user-table__cell">
+          <a className="link" href={`mailto:${user.email}`}>
+            {user.email}
+          </a>
+        </div>
+        <div role="cell" className="user-table__cell">
+          {user.address?.city ?? "—"}
+        </div>
+        <div role="cell" className="user-table__cell">
+          {user.company?.name ?? "—"}
+        </div>
+        <div role="cell" className="user-table__cell user-table__cell--actions">
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={() => data.onDelete(user)}
+            aria-label={`Delete ${user.name}`}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    );
   }
+);
 
-  return (
-    <div
-      role="row"
-      className="user-table__row"
-      style={style}
-      aria-rowindex={index + 2}
-    >
-      <div role="cell" className="user-table__cell">
-        {user.name}
-      </div>
-      <div role="cell" className="user-table__cell">
-        <a className="link" href={`mailto:${user.email}`}>
-          {user.email}
-        </a>
-      </div>
-      <div role="cell" className="user-table__cell">
-        {user.address?.city ?? "—"}
-      </div>
-      <div role="cell" className="user-table__cell">
-        {user.company?.name ?? "—"}
-      </div>
-      <div role="cell" className="user-table__cell user-table__cell--actions">
-        <button
-          type="button"
-          className="button button--ghost"
-          onClick={() => data.onDelete(user)}
-          aria-label={`Delete ${user.name}`}
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  );
+UserRow.displayName = "UserRow";
+
+const getRowKey = (index: number, data: RowData) => {
+  const user = data.users[index];
+  if (!user) {
+    return `row-${index}`;
+  }
+  return user.id ?? user.email;
 };
 
 const UserTable: React.FC<UserTableProps> = ({ rowData }) => {
@@ -116,6 +124,7 @@ const UserTable: React.FC<UserTableProps> = ({ rowData }) => {
             width="100%"
             itemData={{ users, onDelete }}
             outerElementType={TableBody}
+            itemKey={getRowKey}
           >
             {UserRow}
           </FixedSizeList>
