@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { FixedSizeList, type ListChildComponentProps } from "react-window";
 import type { User } from "../lib/types";
 
@@ -42,6 +42,9 @@ const UserRow = React.memo<ListChildComponentProps<RowData>>(
         style={style}
         aria-rowindex={index + 2}
       >
+        <div role="cell" className="user-table__cell user-table__cell--serial">
+          {index + 1}
+        </div>
         <div role="cell" className="user-table__cell">
           {user.name}
         </div>
@@ -83,7 +86,11 @@ const getRowKey = (index: number, data: RowData) => {
 
 const UserTable: React.FC<UserTableProps> = ({ rowData }) => {
   const { users, onDelete } = rowData;
-  const listHeight = Math.min(users.length * ROW_HEIGHT, MAX_LIST_HEIGHT);
+  const listHeight = useMemo(
+    () => Math.min(users.length * ROW_HEIGHT, MAX_LIST_HEIGHT),
+    [users.length]
+  );
+  const itemData = useMemo(() => ({ users, onDelete }), [users, onDelete]);
 
   return (
     <div className="table-card">
@@ -92,10 +99,13 @@ const UserTable: React.FC<UserTableProps> = ({ rowData }) => {
         role="table"
         aria-label="User list"
         aria-rowcount={users.length + 1}
-        aria-colcount={5}
+        aria-colcount={6}
       >
         <div role="rowgroup" className="user-table__header">
           <div role="row" className="user-table__row" aria-rowindex={1}>
+            <div role="columnheader" className="user-table__cell user-table__cell--serial">
+              No.
+            </div>
             <div role="columnheader" className="user-table__cell">
               Name
             </div>
@@ -122,9 +132,10 @@ const UserTable: React.FC<UserTableProps> = ({ rowData }) => {
             itemCount={users.length}
             itemSize={ROW_HEIGHT}
             width="100%"
-            itemData={{ users, onDelete }}
+            itemData={itemData}
             outerElementType={TableBody}
             itemKey={getRowKey}
+            overscanCount={6}
           >
             {UserRow}
           </FixedSizeList>

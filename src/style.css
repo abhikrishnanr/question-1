@@ -427,7 +427,7 @@ h2 {
 
 .user-table__row {
   display: grid;
-  grid-template-columns: 1.4fr 1.6fr 1fr 1.2fr 0.8fr;
+  grid-template-columns: 0.5fr 1.4fr 1.6fr 1fr 1.2fr 0.8fr;
   align-items: center;
   gap: 0.5rem;
   padding: 0 0.5rem;
@@ -460,6 +460,12 @@ h2 {
 
 .user-table__cell--actions {
   text-align: center;
+}
+
+.user-table__cell--serial {
+  text-align: center;
+  color: #5b617e;
+  font-variant-numeric: tabular-nums;
 }
 
 .user-table__body {
