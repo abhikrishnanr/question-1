@@ -53,15 +53,24 @@ const App: React.FC = () => {
 
   const deferredQuery = useDeferredValue(query);
 
+  const searchIndex = useMemo(
+    () =>
+      users.map((user) => ({
+        user,
+        searchName: user.name.toLowerCase(),
+      })),
+    [users]
+  );
+
   const filteredUsers = useMemo(() => {
     const normalized = deferredQuery.trim().toLowerCase();
     if (!normalized) {
       return users;
     }
-    return users.filter((user) =>
-      user.name.toLowerCase().includes(normalized)
-    );
-  }, [deferredQuery, users]);
+    return searchIndex
+      .filter((entry) => entry.searchName.includes(normalized))
+      .map((entry) => entry.user);
+  }, [deferredQuery, searchIndex, users]);
 
   const handleDelete = (user: User) => {
     setUsers((prev) => prev.filter((item) => item !== user));
