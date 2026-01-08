@@ -1,11 +1,4 @@
-import React, {
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Spinner from "./components/Spinner";
 import UserTable from "./components/UserTable";
 import type { ApiResponse, User } from "./lib/types";
@@ -48,7 +41,6 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
-  const insightsRef = useRef<HTMLElement | null>(null);
   const filtersRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -179,13 +171,8 @@ const App: React.FC = () => {
   const maxCityCount = topCities[0]?.[1] ?? 0;
   const maxCompanyCount = topCompanies[0]?.[1] ?? 0;
 
-  const scrollToSection = useCallback((section: React.RefObject<HTMLElement>) => {
+  const scrollToSection = useCallback((section: React.RefObject<HTMLElement | null>) => {
     section.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
-  const handleInvite = useCallback(() => {
-    window.location.href =
-      "mailto:people@cdipd.com?subject=Join%20the%20CDIPD%20International%20team";
   }, []);
 
   const handleExport = useCallback((entries: User[], label: string) => {
@@ -235,18 +222,6 @@ const App: React.FC = () => {
             <p className="brand__tagline">Connecting all staff across the globe</p>
           </div>
         </div>
-        <div className="topbar__actions">
-          <button
-            type="button"
-            className="button button--ghost"
-            onClick={() => scrollToSection(insightsRef)}
-          >
-            View insights
-          </button>
-          <button type="button" className="button button--primary" onClick={handleInvite}>
-            Invite staff
-          </button>
-        </div>
       </header>
 
       <section className="hero-card">
@@ -295,7 +270,7 @@ const App: React.FC = () => {
       </section>
 
       <main className="main-grid">
-        <section className="insights-grid" aria-label="Infographics" ref={insightsRef}>
+        <section className="insights-grid" aria-label="Infographics">
           <div className="info-card">
             <div className="info-card__header">
               <div className="info-card__icon">🌍</div>
