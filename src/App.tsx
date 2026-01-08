@@ -36,17 +36,33 @@ const writeCachedUsers = (data: User[]) => {
 const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [query, setQuery] = useState("");
-  const [selectedCity, setSelectedCity] = useState("all");
-  const [selectedCompany, setSelectedCompany] = useState("all");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedCompany, setSelectedCompany] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [isUsingCachedData, setIsUsingCachedData] = useState(false);
   const filtersRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    const fetchUsers = async (showLoading: boolean) => {
+    const buildErrorMessage = (fetchError: unknown) => {
+      if (!navigator.onLine) {
+        return "You're offline. Reconnect to load the staff roster.";
+      }
+      if (fetchError instanceof Error) {
+        if (fetchError.message.startsWith("Request failed")) {
+          return "The staff service isn't responding right now. Please try again in a moment.";
+        }
+        if (fetchError.message === "Invalid API response") {
+          return "The roster data looks incomplete. Please refresh or try again shortly.";
+        }
+      }
+      return "We couldn't load the staff roster. Please refresh and try again.";
+    };
+
+    const fetchUsers = async (showLoading: boolean, hasCachedData: boolean) => {
       if (showLoading) {
         setLoading(true);
       }
@@ -65,15 +81,18 @@ const App: React.FC = () => {
 
         setUsers(payload.data);
         writeCachedUsers(payload.data);
+        setIsUsingCachedData(false);
       } catch (fetchError) {
         if ((fetchError as Error).name === "AbortError") {
           return;
         }
-        setError(
-          fetchError instanceof Error
-            ? fetchError.message
-            : "Something went wrong while fetching users."
-        );
+        setError(buildErrorMessage(fetchError));
+        if (!hasCachedData) {
+          setUsers([]);
+          setQuery("");
+          setSelectedCity("");
+          setSelectedCompany("");
+        }
       } finally {
         if (showLoading) {
           setLoading(false);
@@ -84,13 +103,16 @@ const App: React.FC = () => {
     const cached = readCachedUsers();
     const isStale = !cached || Date.now() - cached.timestamp > CACHE_TTL_MS;
 
+    const hasCachedData = Boolean(cached?.data?.length);
+
     if (cached) {
       setUsers(cached.data);
+      setIsUsingCachedData(true);
       setLoading(false);
     }
 
     if (!cached || isStale) {
-      fetchUsers(!cached);
+      fetchUsers(!cached, hasCachedData);
     }
 
     return () => {
@@ -111,6 +133,8 @@ const App: React.FC = () => {
 
   const filteredUsers = useMemo(() => {
     const normalized = deferredQuery.trim().toLowerCase();
+    const normalizedCity = selectedCity.trim().toLowerCase();
+    const normalizedCompany = selectedCompany.trim().toLowerCase();
     const filteredByQuery = normalized
       ? searchIndex
           .filter((entry) => entry.searchName.includes(normalized))
@@ -118,10 +142,10 @@ const App: React.FC = () => {
       : users;
 
     return filteredByQuery.filter((user) => {
-      if (selectedCity !== "all" && user.address?.city !== selectedCity) {
+      if (normalizedCity && user.address?.city?.toLowerCase() !== normalizedCity) {
         return false;
       }
-      if (selectedCompany !== "all" && user.company?.name !== selectedCompany) {
+      if (normalizedCompany && user.company?.name?.toLowerCase() !== normalizedCompany) {
         return false;
       }
       return true;
@@ -170,6 +194,9 @@ const App: React.FC = () => {
   const topCompanies = filteredCompanyCounts.slice(0, 5);
   const maxCityCount = topCities[0]?.[1] ?? 0;
   const maxCompanyCount = topCompanies[0]?.[1] ?? 0;
+  const filtersDisabled = loading || (!users.length && Boolean(error));
+  const hasActiveFilters =
+    deferredQuery.trim().length > 0 || selectedCity.trim() || selectedCompany.trim();
 
   const scrollToSection = useCallback((section: React.RefObject<HTMLElement | null>) => {
     section.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -382,9 +409,10 @@ const App: React.FC = () => {
               className="button button--ghost"
               onClick={() => {
                 setQuery("");
-                setSelectedCity("all");
-                setSelectedCompany("all");
+                setSelectedCity("");
+                setSelectedCompany("");
               }}
+              disabled={filtersDisabled}
             >
               Reset filters
             </button>
@@ -401,42 +429,51 @@ const App: React.FC = () => {
                 onChange={(event) => setQuery(event.target.value)}
                 className="search-input"
                 autoComplete="off"
+                disabled={filtersDisabled}
               />
             </label>
             <label className="field">
               <span>City</span>
-              <select
+              <input
                 className="select-input"
+                type="search"
+                list="city-options"
+                placeholder={`All cities (${uniqueCities})`}
                 value={selectedCity}
                 onChange={(event) => setSelectedCity(event.target.value)}
-              >
-                <option value="all">All cities ({uniqueCities})</option>
-                {cityCounts.map(([city, count]) => (
-                  <option key={city} value={city}>
-                    {city} ({count})
-                  </option>
+                autoComplete="off"
+                disabled={filtersDisabled}
+              />
+              <datalist id="city-options">
+                {cityCounts.map(([city]) => (
+                  <option key={city} value={city} />
                 ))}
-              </select>
+              </datalist>
+              <p className="microcopy">Searchable list with {uniqueCities} cities.</p>
             </label>
             <label className="field">
               <span>Company</span>
-              <select
+              <input
                 className="select-input"
+                type="search"
+                list="company-options"
+                placeholder={`All companies (${uniqueCompanies})`}
                 value={selectedCompany}
                 onChange={(event) => setSelectedCompany(event.target.value)}
-              >
-                <option value="all">All companies ({uniqueCompanies})</option>
-                {companyCounts.map(([company, count]) => (
-                  <option key={company} value={company}>
-                    {company} ({count})
-                  </option>
+                autoComplete="off"
+                disabled={filtersDisabled}
+              />
+              <datalist id="company-options">
+                {companyCounts.map(([company]) => (
+                  <option key={company} value={company} />
                 ))}
-              </select>
+              </datalist>
+              <p className="microcopy">Searchable list with {uniqueCompanies} partners.</p>
             </label>
           </div>
           <div className="search-hint" aria-live="polite">
-            {deferredQuery.length > 0
-              ? `Filtering ${filteredUsers.length} staff profiles`
+            {hasActiveFilters
+              ? `Showing ${filteredUsers.length} of ${totalUsers} staff profiles`
               : "Showing all staff profiles"}
           </div>
         </section>
@@ -464,11 +501,15 @@ const App: React.FC = () => {
           {loading && <Spinner label="Loading users" />}
           {!loading && error && (
             <div className="error" role="alert">
-              <p>We hit a snag: {error}</p>
-              <p>Try refreshing the page to fetch users again.</p>
+              <p>{error}</p>
+              <p>
+                {isUsingCachedData
+                  ? "You're viewing the last saved roster while we reconnect."
+                  : "Try refreshing the page to fetch users again."}
+              </p>
             </div>
           )}
-          {!loading && !error && (
+          {!loading && (!error || isUsingCachedData) && (
             <UserTable rowData={{ users: filteredUsers, onDelete: handleDelete }} />
           )}
         </section>
