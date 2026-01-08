@@ -377,6 +377,15 @@ h2 {
   color: #5d6285;
 }
 
+.export-hint {
+  font-size: 0.9rem;
+  color: #4a4f72;
+  background: #f5f7ff;
+  border: 1px solid #e1e6ff;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+}
+
 .content {
   display: grid;
   gap: 1.5rem;
@@ -487,6 +496,12 @@ h2 {
 .button--primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 16px 30px rgba(76, 75, 255, 0.35);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
 }
 
 .link {
