@@ -1,4 +1,11 @@
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Spinner from "./components/Spinner";
 import UserTable from "./components/UserTable";
 import type { ApiResponse, User } from "./lib/types";
@@ -40,6 +47,9 @@ const App: React.FC = () => {
   const [selectedCompany, setSelectedCompany] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const insightsRef = useRef<HTMLElement | null>(null);
+  const filtersRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -169,6 +179,50 @@ const App: React.FC = () => {
   const maxCityCount = topCities[0]?.[1] ?? 0;
   const maxCompanyCount = topCompanies[0]?.[1] ?? 0;
 
+  const scrollToSection = useCallback((section: React.RefObject<HTMLElement>) => {
+    section.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const handleInvite = useCallback(() => {
+    window.location.href =
+      "mailto:people@cdipd.com?subject=Join%20the%20CDIPD%20International%20team";
+  }, []);
+
+  const handleExport = useCallback((entries: User[], label: string) => {
+    if (entries.length === 0) {
+      setExportStatus("No staff profiles are available to export.");
+      return;
+    }
+
+    const header = ["Name", "Email", "City", "Company"];
+    const csvRows = [
+      header,
+      ...entries.map((user) => [
+        user.name ?? "",
+        user.email ?? "",
+        user.address?.city ?? "",
+        user.company?.name ?? "",
+      ]),
+    ]
+      .map((row) =>
+        row
+          .map((value) => `"${value.replace(/"/g, "\"\"")}"`)
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csvRows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `cdipd-roster-${dateStamp}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    setExportStatus(`Exported ${entries.length} profiles from the ${label}.`);
+  }, []);
+
   return (
     <div className="app min-h-screen">
       <header className="topbar">
@@ -182,10 +236,14 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="topbar__actions">
-          <button type="button" className="button button--ghost">
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={() => scrollToSection(insightsRef)}
+          >
             View insights
           </button>
-          <button type="button" className="button button--primary">
+          <button type="button" className="button button--primary" onClick={handleInvite}>
             Invite staff
           </button>
         </div>
@@ -200,10 +258,18 @@ const App: React.FC = () => {
             team member aligned with real-time people data.
           </p>
           <div className="hero-card__actions">
-            <button type="button" className="button button--primary">
+            <button
+              type="button"
+              className="button button--primary"
+              onClick={() => scrollToSection(filtersRef)}
+            >
               Launch workforce pulse
             </button>
-            <button type="button" className="button button--ghost">
+            <button
+              type="button"
+              className="button button--ghost"
+              onClick={() => handleExport(users, "full roster")}
+            >
               Download report
             </button>
           </div>
@@ -229,7 +295,7 @@ const App: React.FC = () => {
       </section>
 
       <main className="main-grid">
-        <section className="insights-grid" aria-label="Infographics">
+        <section className="insights-grid" aria-label="Infographics" ref={insightsRef}>
           <div className="info-card">
             <div className="info-card__header">
               <div className="info-card__icon">🌍</div>
@@ -328,7 +394,7 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        <section className="filters-card" aria-label="Filters">
+        <section className="filters-card" aria-label="Filters" ref={filtersRef}>
           <div className="filters-card__header">
             <div>
               <p className="filters-card__title">Filter the people graph</p>
@@ -406,10 +472,20 @@ const App: React.FC = () => {
               <h2>People directory</h2>
               <p>Reach anyone in the CDIPD International network instantly.</p>
             </div>
-            <button type="button" className="button button--ghost">
+            <button
+              type="button"
+              className="button button--ghost"
+              onClick={() => handleExport(filteredUsers, "filtered roster")}
+              disabled={loading}
+            >
               Export roster
             </button>
           </div>
+          {exportStatus && (
+            <p className="export-hint" role="status">
+              {exportStatus}
+            </p>
+          )}
           {loading && <Spinner label="Loading users" />}
           {!loading && error && (
             <div className="error" role="alert">
