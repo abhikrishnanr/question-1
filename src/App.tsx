@@ -4,6 +4,34 @@ import UserTable from "./components/UserTable";
 import type { ApiResponse, User } from "./lib/types";
 
 const API_URL = "https://python.sicsglobal.com/userdetails_api/users";
+const CACHE_KEY = "users-cache";
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+type CachedUsers = {
+  timestamp: number;
+  data: User[];
+};
+
+const readCachedUsers = () => {
+  const cached = sessionStorage.getItem(CACHE_KEY);
+  if (!cached) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(cached) as CachedUsers;
+    if (!parsed || !Array.isArray(parsed.data) || typeof parsed.timestamp !== "number") {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedUsers = (data: User[]) => {
+  const payload: CachedUsers = { data, timestamp: Date.now() };
+  sessionStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+};
 
 const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -14,8 +42,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const controller = new AbortController();
 
-    const fetchUsers = async () => {
-      setLoading(true);
+    const fetchUsers = async (showLoading: boolean) => {
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
 
       try {
@@ -30,6 +60,7 @@ const App: React.FC = () => {
         }
 
         setUsers(payload.data);
+        writeCachedUsers(payload.data);
       } catch (fetchError) {
         if ((fetchError as Error).name === "AbortError") {
           return;
@@ -40,11 +71,23 @@ const App: React.FC = () => {
             : "Something went wrong while fetching users."
         );
       } finally {
-        setLoading(false);
+        if (showLoading) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchUsers();
+    const cached = readCachedUsers();
+    const isStale = !cached || Date.now() - cached.timestamp > CACHE_TTL_MS;
+
+    if (cached) {
+      setUsers(cached.data);
+      setLoading(false);
+    }
+
+    if (!cached || isStale) {
+      fetchUsers(!cached);
+    }
 
     return () => {
       controller.abort();
