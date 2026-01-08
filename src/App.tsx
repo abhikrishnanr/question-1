@@ -114,7 +114,7 @@ const App: React.FC = () => {
             </div>
           )}
           {!loading && !error && (
-            <UserTable users={filteredUsers} onDelete={handleDelete} />
+            <UserTable rowData={{ users: filteredUsers, onDelete: handleDelete }} />
           )}
         </section>
       </main>
