@@ -141,35 +141,56 @@ h1 {
 
 .user-table {
   width: 100%;
-  border-collapse: collapse;
   text-align: left;
   font-size: 0.95rem;
+  display: grid;
+  gap: 0.5rem;
 }
 
-.user-table th {
+.user-table__header {
+  border-bottom: 1px solid #eff1ff;
+  padding-bottom: 0.5rem;
+}
+
+.user-table__row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.6fr 1fr 1.2fr 0.8fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+  transition: background 0.2s ease;
+}
+
+.user-table__body .user-table__row {
+  border-top: 1px solid #eff1ff;
+}
+
+.user-table__row:hover {
+  background: #f4f6ff;
+}
+
+.user-table__cell {
+  padding: 0.85rem 0;
+  color: #2b2f4f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-table__header .user-table__cell {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: #6a6f91;
-  padding: 0.75rem 0.5rem;
+  padding: 0.75rem 0;
 }
 
-.user-table td {
-  padding: 0.85rem 0.5rem;
-  border-top: 1px solid #eff1ff;
-  color: #2b2f4f;
-}
-
-.user-table tr {
-  transition: background 0.2s ease;
-}
-
-.user-table tr:hover {
-  background: #f4f6ff;
-}
-
-.actions-col {
+.user-table__cell--actions {
   text-align: center;
+}
+
+.user-table__body {
+  max-height: 360px;
 }
 
 .button {
